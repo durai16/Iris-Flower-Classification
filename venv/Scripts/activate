@@ -38,7 +38,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="C:\Users\D E L L\Iris-Flower-Classification\venv"
+VIRTUAL_ENV="F:\project\Iris-Flower-Classification\venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
