@@ -7,6 +7,7 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
 from app.main import PredictionException, logger
+from app.config import settings
 
 
 # ==================================================
@@ -17,6 +18,12 @@ router = APIRouter(
     prefix="/api/v1",
     tags=["API v1"]
 )
+# API Versioning Plan:
+# V1 keeps the original response contract for existing clients.
+# If a future V2 requires a breaking response change, it will use
+# a separate /api/v2 router and schema instead of modifying V1.
+# For example, V2 can return the full probability distribution
+# and model_version while V1 continues returning confidence.
 
 
 # ==================================================
@@ -186,11 +193,10 @@ def predict_batch(
             "Batch input cannot be empty"
         )
 
-    if batch_size > 100:
-
+    if batch_size > settings.MAX_BATCH_SIZE:
         raise PredictionException(
-            "Batch size cannot exceed 100"
-        )
+        f"Batch size cannot exceed {settings.MAX_BATCH_SIZE}"
+    )
 
     # Create feature array
 
