@@ -2,7 +2,8 @@ import numpy as np
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
-
+from fastapi import Depends
+from app.security import verify_api_key
 from app.main import PredictionException, logger
 
 
@@ -12,7 +13,8 @@ from app.main import PredictionException, logger
 
 router = APIRouter(
     prefix="/api/v2",
-    tags=["API v2"]
+    tags=["API v2"],
+    dependencies=[Depends(verify_api_key)]
 )
 
 

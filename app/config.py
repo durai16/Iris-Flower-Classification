@@ -11,6 +11,12 @@ class Settings(BaseSettings):
 
     API_TITLE: str = "Iris Flower Classification API"
 
+    # Task 17: Security
+    API_KEY: str
+
+    # Task 17: CORS
+    CORS_ORIGINS: str = "http://localhost:3000"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

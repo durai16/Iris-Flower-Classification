@@ -1,11 +1,11 @@
 from pathlib import Path
-from uuid import uuid4
 import joblib
-
+from app.metrics import metrics
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-
+from fastapi.middleware.cors import CORSMiddleware
+import uuid
 import logging
 from logging.handlers import RotatingFileHandler
 import time
@@ -63,6 +63,17 @@ description="API for predicting Iris flower species using a Machine Learning mod
     version="1.0.0",
     lifespan=lifespan
 )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        origin.strip()
+        for origin in settings.CORS_ORIGINS.split(",")
+        if origin.strip()
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "X-API-Key"],
+)
 
 
 # Exception Handler
@@ -86,39 +97,50 @@ async def prediction_exception_handler(
 # Logging Middleware
 
 @app.middleware("http")
-async def logging_middleware(request: Request, call_next):
-
-    request_id = str(uuid4())
-
+async def log_requests(request: Request, call_next):
+    request_id = str(uuid.uuid4())
     request.state.request_id = request_id
-
     start_time = time.time()
-
     logger.info(
-        f"Request started: "
-        f"{request.method} "
+        f"Request started: {request.method} "
         f"{request.url.path} "
         f"request_id={request_id}"
     )
 
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
 
-    duration = time.time() - start_time
+        duration = time.time() - start_time
 
-    logger.info(
-        f"Request completed: "
-        f"{request.method} "
-        f"{request.url.path} "
-        f"status={response.status_code} "
-        f"duration={duration:.4f}s "
-        f"request_id={request_id}"
-    )
+        metrics.record_request(
+            endpoint=request.url.path,
+            status_code=response.status_code,
+            duration=duration
+        )
 
-    response.headers["X-Request-ID"] = request_id
+        logger.info(
+            f"Request completed: {request.method} "
+            f"{request.url.path} "
+            f"status={response.status_code} "
+            f"duration={duration:.3f}s "
+            f"request_id={request_id}"
+        )
 
-    return response
+        return response
 
+    except Exception:
+        duration = time.time() - start_time
 
+        metrics.record_request(
+            endpoint=request.url.path,
+            status_code=500,
+            duration=duration
+        )
+
+        raise
+@app.get("/metrics")
+async def get_metrics():
+    return metrics.get_metrics()
 # Home Endpoint
 
 @app.get("/")

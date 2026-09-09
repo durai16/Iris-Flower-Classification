@@ -1,11 +1,11 @@
 import numpy as np
 import time
-
+from fastapi import Depends
+from app.security import verify_api_key
 from typing import List
 
 from fastapi import APIRouter, Request
-from pydantic import BaseModel, Field
-
+from pydantic import BaseModel, ConfigDict, Field
 from app.main import PredictionException, logger
 from app.config import settings
 
@@ -16,8 +16,10 @@ from app.config import settings
 
 router = APIRouter(
     prefix="/api/v1",
-    tags=["API v1"]
-)
+    tags=["API v1"],
+    dependencies=[Depends(verify_api_key)]
+    )
+
 # API Versioning Plan:
 # V1 keeps the original response contract for existing clients.
 # If a future V2 requires a breaking response change, it will use
@@ -30,20 +32,15 @@ router = APIRouter(
 # Input Schema
 # ==================================================
 
+
+
 class IrisInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
 
-    sepal_length: float = Field(..., gt=0)
-
-    sepal_width: float = Field(
-        ...,
-        gt=0,
-        le=10
-    )
-
-    petal_length: float = Field(..., gt=0)
-
-    petal_width: float = Field(..., gt=0)
-
+    sepal_length: float = Field(..., gt=0, le=10)
+    sepal_width: float = Field(..., gt=0, le=10)
+    petal_length: float = Field(..., gt=0, le=10)
+    petal_width: float = Field(..., gt=0, le=10)
 
 # ==================================================
 # Output Schema
@@ -58,22 +55,14 @@ class PredictionOutput(BaseModel):
     request_id: str
 
 
-# ==================================================
-# Batch Input Schema
-# ==================================================
-
 class PredictionBatchInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
 
     inputs: List[IrisInput]
 
 
-# ==================================================
-# Batch Output Schema
-# ==================================================
-
 class PredictionBatchOutput(BaseModel):
-
-    predictions: List[PredictionOutput]
+    predictions: List[PredictionOutput] 
 
 
 # ==================================================
